@@ -45,6 +45,31 @@ Shows extra tags for staff members — OWNER, ADMIN, STAFF, MOD, VC Mod, Chat Mo
 
 </details>
 
+## Custom Timestamps
+Customize the format of timestamps in chat — calendar, relative, ISO 8601, or a custom
+[moment](https://momentjs.com/docs/#/displaying/format/) format string.
+
+Originally by [Fiery](https://github.com/fierdetta/custom-timestamps).
+
+> https://bleelblep.github.io/revengeplugins/custom-timestamps/
+
+<details>
+  <summary>Fixes applied for Discord 337.x</summary>
+
+  - `message.timestamp` used to be a moment instance and the plugin called `.calendar()`
+    on it directly. It is a plain string now, so every moment method was undefined —
+    which threw from inside `RowManager.generate` and crashed the whole chat view.
+    Timestamps are coerced through `moment()`, which handles strings, numbers, Dates and
+    existing moments alike.
+  - Both `generate` hooks are wrapped: they run on the chat render path, so anything
+    escaping them takes the entire ChatView down rather than just breaking timestamps.
+  - The `after` hook destructured `{ message }` from a return value that can be
+    undefined — a second latent crash.
+  - The settings text field resolved the input component as the module's `default`
+    export. It is a named `InputView` export now, so the Custom option rendered nothing.
+
+</details>
+
 # Development
 
 ```sh
