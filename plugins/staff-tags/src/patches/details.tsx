@@ -55,7 +55,9 @@ const rowPatch = ([{ guildId, user }], res) => {
 export default () => {
     const patches = []
 
-    findByTypeNameAll("UserRow").forEach((UserRow) => patches.push(after("type", UserRow, rowPatch)))
+    // findByTypeNameAll isn't present in every client fork
+    const rows = typeof findByTypeNameAll === "function" ? findByTypeNameAll("UserRow") : []
+    rows?.forEach?.((UserRow) => UserRow && patches.push(after("type", UserRow, rowPatch)))
 
     return () => patches.forEach((unpatch) => unpatch())
 }

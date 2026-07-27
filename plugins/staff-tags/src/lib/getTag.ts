@@ -143,8 +143,10 @@ export default function getTag(guild, channel, user) {
             (!user.bot && tag.permissions?.some(perm => permissions?.includes(perm)))) {
 
             let roleColor = storage.useRoleColor ? GuildMemberStore?.getMember?.(guild?.id, user.id)?.colorString : undefined
-            let backgroundColor = roleColor ? roleColor : tag.backgroundColor ?? rawColors.BRAND_500
-            let textColor = (roleColor || !tag.textColor) ? (chroma(backgroundColor).get('lab.l') < 70 ? rawColors.WHITE_500 : rawColors.BLACK_500) : tag.textColor
+            let backgroundColor = roleColor ? roleColor : tag.backgroundColor ?? rawColors?.BRAND_500 ?? "#5865F2"
+            let textColor = (roleColor || !tag.textColor)
+                ? (chroma(backgroundColor).get('lab.l') < 70 ? rawColors?.WHITE_500 ?? "#FFFFFF" : rawColors?.BLACK_500 ?? "#000000")
+                : tag.textColor
 
             return {
                 ...tag,
