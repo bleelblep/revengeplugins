@@ -20,7 +20,9 @@ const apply = (name: string, patch: () => () => void) => {
 
 export default {
     onLoad: () => {
-        storage.useRoleColor ??= false
+        // storage comes from vendetta.plugin, which isn't always populated on this
+        // client -- don't let a missing default abort the whole load.
+        try { storage.useRoleColor ??= false } catch { /* no persisted storage */ }
         apply("chat", patchChat)
         apply("tag", patchTag)
         apply("name", patchName)

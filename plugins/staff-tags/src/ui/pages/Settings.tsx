@@ -18,7 +18,7 @@ const SwitchRow = Table?.TableSwitchRow ?? Forms?.FormSwitchRow
 const { ScrollView, Text } = ReactNative
 
 export default function Settings() {
-    useProxy(storage)
+    try { useProxy(storage) } catch { /* storage unavailable on this client */ }
 
     if (!Section || !SwitchRow) {
         return <ScrollView style={{ flex: 1, padding: 16 }}>

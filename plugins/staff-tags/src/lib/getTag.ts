@@ -1,5 +1,5 @@
 import { findByProps, findByStoreName } from "@vendetta/metro";
-import { chroma, constants, i18n } from "@vendetta/metro/common";
+import { chroma, constants } from "@vendetta/metro/common";
 import { storage } from "@vendetta/plugin";
 import { rawColors } from "@vendetta/ui";
 
@@ -20,29 +20,23 @@ const computePermissions = PermissionUtils?.computePermissionsForMember
 const GuildMemberStore = findByStoreName("GuildMemberStore")
 const TagModule = findByProps("getBotLabel")
 
-// Discord 337.x moved to hashed intl keys, so every one of these lookups now returns
-// undefined. Keep the list for older builds, but drop the misses -- an array holding
-// undefined makes `.includes(undefined)` return true, which inverted every guard in
-// this plugin and silently killed all tags.
-export const BUILT_IN_TAGS: string[] = [
-    "AI_TAG",
-    "BOT_TAG_BOT",
-    "BOT_TAG_SERVER",
-    "SYSTEM_DM_TAG_SYSTEM",
-    "GUILD_AUTOMOD_USER_BADGE_TEXT",
-    "REMIXING_TAG"
-].map(key => i18n?.Messages?.[key]).filter(text => typeof text === "string" && text.length > 0)
-
-// Locale-independent replacement for `BUILT_IN_TAGS.includes(getBotLabel(type))`.
-// We only care *whether* Discord maps this type to a real tag, not what it's called,
-// so the answer survives both translation and the hashed-key migration.
+// This plugin used to build a list of built-in tag names from i18n.Messages and compare
+// tag text against it. Do not reintroduce that: on this client `metro.common.i18n` is a
+// lazy getter that *throws* ("bunny.metro.byProps(Messages) is undefined"), and optional
+// chaining does not protect against a throwing getter. Touching it at module scope threw
+// during import, which is why the plugin could not be enabled at all.
+//
+// Ask Discord whether a tag type maps to a label instead. No i18n, locale-independent,
+// and unaffected by the hashed-key migration.
 export function isBuiltInTag(type: unknown): boolean {
     if (typeof type !== "number") return false
 
-    const label = TagModule?.getBotLabel?.(type)
-    if (typeof label === "string" && label.length > 0) return true
-
-    return BUILT_IN_TAGS.includes(label)
+    try {
+        const label = TagModule?.getBotLabel?.(type)
+        return typeof label === "string" && label.length > 0
+    } catch {
+        return false
+    }
 }
 
 interface Tag {
@@ -142,7 +136,7 @@ export default function getTag(guild, channel, user) {
         if (tag.condition?.(guild, channel, user) ||
             (!user.bot && tag.permissions?.some(perm => permissions?.includes(perm)))) {
 
-            let roleColor = storage.useRoleColor ? GuildMemberStore?.getMember?.(guild?.id, user.id)?.colorString : undefined
+            let roleColor = storage?.useRoleColor ? GuildMemberStore?.getMember?.(guild?.id, user.id)?.colorString : undefined
             let backgroundColor = roleColor ? roleColor : tag.backgroundColor ?? rawColors?.BRAND_500 ?? "#5865F2"
             let textColor = (roleColor || !tag.textColor)
                 ? (chroma(backgroundColor).get('lab.l') < 70 ? rawColors?.WHITE_500 ?? "#FFFFFF" : rawColors?.BLACK_500 ?? "#000000")
