@@ -1,0 +1,156 @@
+# revenge/bunny/kettu plugins
+A few vendetta plugins have been forked and are being maintained to work with it's successors [Revenge](https://github.com/revenge-mod/revenge-bundle),[Kettu](https://github.com/C0C0B01/Kettu)). Credit goes to the plugin devs for their respective work.
+
+Based on [shipwr3ckd/revengeplugin](https://github.com/shipwr3ckd/revengeplugin) by シグマ siguma (CC0-1.0), with fixes for current Discord stable.
+
+# How to install?
+Copy and paste the plugin URL into your discord clients Plugins page.
+
+# Plugins 
+## HideBlockedAndIgnoredMessages 
+A plugin that removes the `X blocked or ignored message/s` prompt and replies to the blocked or ignored messages from chat (optional in plugin settings).
+
+> https://bleelblep.github.io/revengeplugins/HideBlockedAndIgnoredMessages/
+<h3>
+<details>
+  <summary>Preview</summary>
+  <p>
+    <img src="./images/HideBlockedAndIgnoredMessages.png/" width="300" />
+</details>
+</h3>
+
+## CopyBios 
+Copy bio text.
+
+> https://bleelblep.github.io/revengeplugins/CopyBios/
+<h3>
+<details>
+  <summary>Preview</summary>
+  <p>
+    <img src="./images/CopyBios.png/" width="300" />
+  </p>
+</details>
+</h3>
+
+## catbox.moe
+Upload your silly ahh files larger than 10MBs to catbox.moe.
+
+> https://bleelblep.github.io/revengeplugins/catbox.moe/
+<h3>
+<details>
+  <summary>Preview</summary>
+  <p>
+    <img src="./images/catbox.moe.gif/" width="300" />
+  </p>
+</details>
+</h3>
+
+## Silent Messages 
+Send messages without notifying the receiver.
+
+> https://bleelblep.github.io/revengeplugins/silentmessages/
+
+## Rich Presence
+Sets Discord Rich Presence for your profile.
+
+> https://bleelblep.github.io/revengeplugins/RichPresence/
+<h3>
+<details>
+  <summary>Preview</summary>
+  <p>
+    <img src="./images/RichPresence.png/" width="300" />
+  </p>
+</details>
+</h3>
+
+## NSFW Blur
+Blur image previews and disable embed media in NSFW channels.
+
+> https://bleelblep.github.io/revengeplugins/nsfw-blur
+<h3>
+<details>
+  <summary>Preview</summary>
+  <p>
+    <img src="./images/nsfw-blur.png/" width="300" />
+  </p>
+</details>
+</h3>
+
+## Local Edit
+Edit messages locally.
+
+> https://bleelblep.github.io/revengeplugins/localedit
+<h3>
+<details>
+  <summary>Preview</summary>
+  <p>
+    <img src="./images/localedit.gif/" width="300" />
+  </p>
+</details>
+</h3>
+
+## AnonymousFileNames
+Randomises file names before you upload them.
+
+> https://bleelblep.github.io/revengeplugins/AnonymousFileNames
+<h3>
+<details>
+  <summary>Preview</summary>
+  <p>
+    <img src="./images/AnonymousFileNames.png/" width="300" />
+  </p>
+</details>
+</h3>
+
+## AudioBookShelfRichPresence
+Rich presence for AudioBookShelf media server.
+
+> https://bleelblep.github.io/revengeplugins/ABSRPC
+<h3>
+<details>
+  <summary>Preview</summary>
+  <p>
+    <img src="./images/ABSRPC.png/" width="300" />
+  </p>
+</details>
+</h3>
+
+## Custom Voice Messages
+Allows Sending any audio as a voice message.
+
+> https://bleelblep.github.io/revengeplugins/customVoiceMessages
+<h3>
+<details>
+  <summary>Preview</summary>
+  <p>
+    <img src="./images/customVoiceMessages.png/" width="300" />
+  </p>
+</details>
+</h3>
+
+## Staff Tags
+Shows extra tags for staff members.
+
+> https://bleelblep.github.io/revengeplugins/staff-tags
+<h3>
+<details>
+  <summary>Preview</summary>
+  <p>
+    <img src="./images/staff-tags.png/" width="300" />
+  </p>
+</details>
+</h3>
+
+## FakeProfileThemesAndEffects
+Allows profile theming and the usage of profile effects by hiding the colors and effect ID in your About Me using invisible, zero-width characters.
+
+> https://shipwr3ckd.github.io/FPTE/FakeProfileThemesAndEffects
+
+<h3>
+<details>
+  <summary>Preview</summary>
+  <p>
+    <img src="./images/FPTE.png/" width="300" />
+  </p>
+</details>
+</h3>
