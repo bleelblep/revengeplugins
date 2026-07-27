@@ -1,156 +1,62 @@
 # revenge/bunny/kettu plugins
-A few vendetta plugins have been forked and are being maintained to work with it's successors [Revenge](https://github.com/revenge-mod/revenge-bundle),[Kettu](https://github.com/C0C0B01/Kettu)). Credit goes to the plugin devs for their respective work.
 
-Based on [shipwr3ckd/revengeplugin](https://github.com/shipwr3ckd/revengeplugin) by シグマ siguma (CC0-1.0), with fixes for current Discord stable.
+Vendetta plugins maintained to work with current Discord stable on its successors
+[Revenge](https://github.com/revenge-mod/revenge-bundle) and [Kettu](https://github.com/C0C0B01/Kettu).
+Credit goes to the original plugin devs for their respective work.
+
+Forked from [shipwr3ckd/revengeplugin](https://github.com/shipwr3ckd/revengeplugin) by シグマ siguma (CC0-1.0).
+
+Tested against **Discord 337.10** on **RevengeXposed 1.4.10**.
 
 # How to install?
-Copy and paste the plugin URL into your discord clients Plugins page.
+Copy the plugin URL below and paste it into your Discord client's Plugins page.
 
-# Plugins 
-## HideBlockedAndIgnoredMessages 
-A plugin that removes the `X blocked or ignored message/s` prompt and replies to the blocked or ignored messages from chat (optional in plugin settings).
-
-> https://bleelblep.github.io/revengeplugins/HideBlockedAndIgnoredMessages/
-<h3>
-<details>
-  <summary>Preview</summary>
-  <p>
-    <img src="./images/HideBlockedAndIgnoredMessages.png/" width="300" />
-</details>
-</h3>
-
-## CopyBios 
-Copy bio text.
-
-> https://bleelblep.github.io/revengeplugins/CopyBios/
-<h3>
-<details>
-  <summary>Preview</summary>
-  <p>
-    <img src="./images/CopyBios.png/" width="300" />
-  </p>
-</details>
-</h3>
-
-## catbox.moe
-Upload your silly ahh files larger than 10MBs to catbox.moe.
-
-> https://bleelblep.github.io/revengeplugins/catbox.moe/
-<h3>
-<details>
-  <summary>Preview</summary>
-  <p>
-    <img src="./images/catbox.moe.gif/" width="300" />
-  </p>
-</details>
-</h3>
-
-## Silent Messages 
-Send messages without notifying the receiver.
-
-> https://bleelblep.github.io/revengeplugins/silentmessages/
-
-## Rich Presence
-Sets Discord Rich Presence for your profile.
-
-> https://bleelblep.github.io/revengeplugins/RichPresence/
-<h3>
-<details>
-  <summary>Preview</summary>
-  <p>
-    <img src="./images/RichPresence.png/" width="300" />
-  </p>
-</details>
-</h3>
-
-## NSFW Blur
-Blur image previews and disable embed media in NSFW channels.
-
-> https://bleelblep.github.io/revengeplugins/nsfw-blur
-<h3>
-<details>
-  <summary>Preview</summary>
-  <p>
-    <img src="./images/nsfw-blur.png/" width="300" />
-  </p>
-</details>
-</h3>
-
-## Local Edit
-Edit messages locally.
-
-> https://bleelblep.github.io/revengeplugins/localedit
-<h3>
-<details>
-  <summary>Preview</summary>
-  <p>
-    <img src="./images/localedit.gif/" width="300" />
-  </p>
-</details>
-</h3>
-
-## AnonymousFileNames
-Randomises file names before you upload them.
-
-> https://bleelblep.github.io/revengeplugins/AnonymousFileNames
-<h3>
-<details>
-  <summary>Preview</summary>
-  <p>
-    <img src="./images/AnonymousFileNames.png/" width="300" />
-  </p>
-</details>
-</h3>
-
-## AudioBookShelfRichPresence
-Rich presence for AudioBookShelf media server.
-
-> https://bleelblep.github.io/revengeplugins/ABSRPC
-<h3>
-<details>
-  <summary>Preview</summary>
-  <p>
-    <img src="./images/ABSRPC.png/" width="300" />
-  </p>
-</details>
-</h3>
-
-## Custom Voice Messages
-Allows Sending any audio as a voice message.
-
-> https://bleelblep.github.io/revengeplugins/customVoiceMessages
-<h3>
-<details>
-  <summary>Preview</summary>
-  <p>
-    <img src="./images/customVoiceMessages.png/" width="300" />
-  </p>
-</details>
-</h3>
+# Plugins
 
 ## Staff Tags
-Shows extra tags for staff members.
+Shows extra tags for staff members — OWNER, ADMIN, STAFF, MOD, VC Mod, Chat Mod, WEBHOOK.
 
-> https://bleelblep.github.io/revengeplugins/staff-tags
-<h3>
-<details>
-  <summary>Preview</summary>
-  <p>
-    <img src="./images/staff-tags.png/" width="300" />
-  </p>
-</details>
-</h3>
-
-## FakeProfileThemesAndEffects
-Allows profile theming and the usage of profile effects by hiding the colors and effect ID in your About Me using invisible, zero-width characters.
-
-> https://shipwr3ckd.github.io/FPTE/FakeProfileThemesAndEffects
+> https://bleelblep.github.io/revengeplugins/staff-tags/
 
 <h3>
 <details>
   <summary>Preview</summary>
   <p>
-    <img src="./images/FPTE.png/" width="300" />
+    <img src="./images/staff-tags.png" width="300" />
   </p>
 </details>
 </h3>
+
+<details>
+  <summary>Fixes applied for Discord 337.x</summary>
+
+  - `metro.common.i18n` is a lazy getter that **throws** on this client
+    (`bunny.metro.byProps(Messages) is undefined`). The plugin read `i18n.Messages` at
+    module scope to build a list of built-in tag names, so importing it threw and the
+    plugin could never be enabled. Optional chaining does not help — the getter throws
+    rather than returning undefined. Built-in tags are now detected via `getBotLabel`,
+    which needs no localised strings.
+  - Permission helper is resolved across old and new names without destructuring the
+    finder result.
+  - Every patch guards its target module, so a moved module disables one surface instead
+    of the whole plugin.
+  - `DisplayName` and `HeaderName` no longer exist on this build, so profile and chat
+    header tags are currently inactive. Chat messages and member-list rows work.
+
+</details>
+
+# Development
+
+```sh
+npm install
+npm run build          # build all plugins into dist/
+node serve.mjs --watch # build, then serve dist/ over LAN for on-device testing
+
+npm i ws --no-save     # devtools.mjs only; kept out of package.json so the
+node devtools.mjs      # CI lockfile stays in sync
+```
+
+`serve.mjs` prints a LAN install URL you can paste straight into the client, and rebuilds
+on change. Note that console output is **not** forwarded over Revenge's debug websocket on
+this build — `serve.mjs` exposes a `POST /collect` endpoint so a plugin can report
+diagnostics directly instead.
