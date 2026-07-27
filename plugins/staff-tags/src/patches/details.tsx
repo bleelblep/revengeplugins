@@ -34,6 +34,8 @@ const rowPatch = ([{ guildId, user }], res) => {
                 verified: tag.verified,
             });
         } else {
+            if (!TagModule?.default) return;
+
             if (!Array.isArray(nameContainer.props.children)) {
                 nameContainer.props.children = [nameContainer.props.children];
             }

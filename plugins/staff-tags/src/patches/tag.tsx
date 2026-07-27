@@ -4,10 +4,15 @@ import { findInReactTree } from "@vendetta/utils";
 
 const Tag = findByProps("getBotLabel")
 
-export default () => after("default", Tag, ([{ text, textColor, backgroundColor }], ret) => {
-    const label = findInReactTree(ret, (c) => typeof c.props.children === "string")
+export default () => {
+    if (!Tag) return () => {}
 
-    if (text) label.props.children = text
-    if (textColor) label.props.style.push({ color: textColor })
-    if (backgroundColor) ret.props.style.push({ backgroundColor })
-})
+    return after("default", Tag, ([{ text, textColor, backgroundColor }], ret) => {
+        const label = findInReactTree(ret, (c) => typeof c?.props?.children === "string")
+        if (!label) return
+
+        if (text) label.props.children = text
+        if (textColor && Array.isArray(label.props.style)) label.props.style.push({ color: textColor })
+        if (backgroundColor && Array.isArray(ret?.props?.style)) ret.props.style.push({ backgroundColor })
+    })
+}

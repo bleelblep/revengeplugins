@@ -14,11 +14,11 @@ const ChannelStore = findByStoreName("ChannelStore");
 export default () => {
     const patches = []
 
-    patches.push(after("default", HeaderName, ([{ channelId }], ret) => {
-        ret.props.channelId = channelId
+    if (HeaderName) patches.push(after("default", HeaderName, ([{ channelId }], ret) => {
+        if (ret?.props) ret.props.channelId = channelId
     }))
 
-    patches.push(after("default", DisplayName, ([{ guildId, channelId, user }], ret) => {
+    if (DisplayName) patches.push(after("default", DisplayName, ([{ guildId, channelId, user }], ret) => {
         const tagComponent = findInReactTree(ret, (c) => c?.type?.Types)
         if (!tagComponent || !isBuiltInTag(tagComponent.props.type)) {
             const guild = GuildStore.getGuild(guildId)
@@ -33,7 +33,7 @@ export default () => {
                     }
                 } else {
                     const row = findInReactTree(ret, (c) => c?.props?.style?.flexDirection === "row")
-                    if (!row || !Array.isArray(row.props.children)) return
+                    if (!row || !Array.isArray(row.props.children) || !TagModule?.default) return
 
                     row.props.children.push(
                         <TagModule.default

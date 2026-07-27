@@ -4,8 +4,18 @@ import { storage } from "@vendetta/plugin";
 import { rawColors } from "@vendetta/ui";
 
 // Permissions
-const { Permissions } = constants
-const { computePermissions } = findByProps("computePermissions", "canEveryoneRole")
+const Permissions = constants?.Permissions ?? {}
+
+// Discord 337.x split the permission helpers: `computePermissions` / `canEveryoneRole`
+// are gone, replaced by `computePermissionsForMember`. The old code destructured the
+// finder result directly, so once the module stopped resolving this threw at import
+// time and the plugin could not be enabled at all. Never destructure a finder.
+const PermissionUtils = findByProps("computePermissionsForMember")
+    ?? findByProps("computePermissions", "canEveryoneRole")
+    ?? findByProps("computePermissions")
+
+const computePermissions = PermissionUtils?.computePermissionsForMember
+    ?? PermissionUtils?.computePermissions
 
 const GuildMemberStore = findByStoreName("GuildMemberStore")
 const TagModule = findByProps("getBotLabel")
@@ -47,7 +57,7 @@ interface Tag {
 const tags: Tag[] = [
     {
         text: "WEBHOOK",
-        condition: (guild, channel, user) => user.isNonUserBot()
+        condition: (guild, channel, user) => user.isNonUserBot?.() ?? false
     },
     {
         text: "OWNER",
@@ -81,25 +91,58 @@ const tags: Tag[] = [
     }
 ]
 
+// The replacement helper's argument order isn't documented anywhere, so try the known
+// call shapes once and remember whichever one answers. -1 means "none of them work",
+// in which case we skip permission tags rather than throwing on every render.
+const callShapes = [
+    (guild, channel, user) => computePermissions({ user, context: guild, overwrites: channel?.permissionOverwrites }),
+    (guild, channel, user) => computePermissions({ user, context: guild, overwrites: channel?.permissionOverwrites, checkElevated: false }),
+    (guild, channel, user) => computePermissions(user, guild, channel),
+    (guild, channel, user) => computePermissions(guild, channel, user)
+]
+let workingShape: number | undefined
+
+function computePermissionsInt(guild, channel, user): bigint | undefined {
+    if (typeof computePermissions !== "function") return undefined
+
+    const candidates = workingShape === undefined
+        ? callShapes.keys()
+        : workingShape === -1 ? [] : [workingShape]
+
+    for (const index of candidates) {
+        try {
+            const result = callShapes[index](guild, channel, user)
+            if (typeof result === "bigint" || typeof result === "number") {
+                workingShape = index
+                return BigInt(result)
+            }
+        } catch { /* wrong shape, try the next one */ }
+    }
+
+    if (workingShape === undefined) workingShape = -1
+    return undefined
+}
+
 export default function getTag(guild, channel, user) {
+    if (!user) return
+
     let permissions
     if (guild) {
-        const permissionsInt = computePermissions({
-            user: user,
-            context: guild,
-            overwrites: channel?.permissionOverwrites
-        })
-        permissions = Object.entries(Permissions)
-            .map(([permission, permissionInt]: [string, bigint]) =>
-                permissionsInt & permissionInt ? permission : "")
-            .filter(Boolean)
+        const permissionsInt = computePermissionsInt(guild, channel, user)
+
+        if (permissionsInt !== undefined) {
+            permissions = Object.entries(Permissions)
+                .map(([permission, permissionInt]: [string, bigint]) =>
+                    permissionsInt & BigInt(permissionInt as any) ? permission : "")
+                .filter(Boolean)
+        }
     }
 
     for (const tag of tags) {
         if (tag.condition?.(guild, channel, user) ||
             (!user.bot && tag.permissions?.some(perm => permissions?.includes(perm)))) {
 
-            let roleColor = storage.useRoleColor ? GuildMemberStore.getMember(guild?.id, user.id)?.colorString : undefined
+            let roleColor = storage.useRoleColor ? GuildMemberStore?.getMember?.(guild?.id, user.id)?.colorString : undefined
             let backgroundColor = roleColor ? roleColor : tag.backgroundColor ?? rawColors.BRAND_500
             let textColor = (roleColor || !tag.textColor) ? (chroma(backgroundColor).get('lab.l') < 70 ? rawColors.WHITE_500 : rawColors.BLACK_500) : tag.textColor
 

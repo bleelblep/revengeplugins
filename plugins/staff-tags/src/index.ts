@@ -7,14 +7,28 @@ import Settings from "./ui/pages/Settings";
 
 let patches = [];
 
+// Apply each surface independently. Previously one bad patch threw straight out of
+// onLoad, which the client reports as "plugin failed to start" -- so a single moved
+// Discord module made the entire plugin impossible to enable.
+const apply = (name: string, patch: () => () => void) => {
+    try {
+        patches.push(patch())
+    } catch (error) {
+        console.error(`[StaffTags] failed to apply ${name} patch:`, error)
+    }
+}
+
 export default {
     onLoad: () => {
         storage.useRoleColor ??= false
-        patches.push(patchChat())
-        patches.push(patchTag())
-        patches.push(patchName())
-        patches.push(patchDetails())
+        apply("chat", patchChat)
+        apply("tag", patchTag)
+        apply("name", patchName)
+        apply("details", patchDetails)
     },
-    onUnload: () => patches.forEach(unpatch => unpatch()),
+    onUnload: () => {
+        patches.forEach(unpatch => { try { unpatch?.() } catch { /* already gone */ } })
+        patches = []
+    },
     settings: Settings
 }
