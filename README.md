@@ -100,6 +100,32 @@ available in source form.
 
 </details>
 
+## Hide Servers v2 (experimental)
+Same idea as Hide Servers, different technique: instead of patching individual
+`GuildsBarGuild` rows, this swaps `GuildsBar`'s own module export and filters the element
+tree it returns before it reaches FastList — aiming to avoid the gap/scroll-jump above by
+never handing FastList the hidden guilds in the first place, rather than nulling their slot
+after the fact.
+
+> https://bleelblep.github.io/revengeplugins/hide-servers-v2/
+
+<details>
+  <summary>How it differs from v1, and its risk</summary>
+
+  Inspired by how [ServerDrawer](https://github.com/kmmiio99o/vd-plugins/blob/main/plugins/ServerDrawer/src/patches/hideGuildsBar.tsx)
+  resolves and replaces `GuildsBar` wholesale (for a different purpose — it hides the bar
+  entirely in favour of a drawer). Here the original `GuildsBar` function is still called, so
+  its hooks and behaviour are untouched; only its returned element tree is walked afterward,
+  and array-valued props with list-shaped keys (`data`, `items`, `children`, `ids`, `guilds`,
+  `nodes`) are filtered for hidden guild ids.
+
+  **Not yet verified against a live client.** The prop-name guesses may not match anything
+  `GuildsBar` actually returns, in which case this silently no-ops and the bar renders
+  untouched — same degrade-safe behaviour as any resolve failure elsewhere in this repo. If
+  it doesn't visually hide anything, fall back to the original Hide Servers plugin above.
+
+</details>
+
 <details>
   <summary>Notes for anyone extending this</summary>
 
