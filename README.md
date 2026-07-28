@@ -143,6 +143,44 @@ this repo's history; the install URLs are gone).
 
 </details>
 
+# Experimental
+
+> [!WARNING]
+> **Use at your own risk.** These plugins delete/modify things live in your own account and
+> have not been thoroughly tested. Nothing here is guaranteed to work correctly, and a bug
+> could mean lost data (deleted messages are gone for good — Discord has no undo) or a
+> crashed client. Try them on a low-stakes server first, and don't run them on anything you'd
+> be upset to lose.
+
+## Purge My Messages
+Bulk-delete your own messages from a server. Searches first and shows a preview before
+anything is deleted, with a separate final confirmation.
+
+> https://bleelblep.github.io/revengeplugins/purge-my-messages/
+
+<details>
+  <summary>Known issues</summary>
+
+  It works, but it's buggy, particularly on servers with a lot of message history:
+
+  - Searching a large amount of history can be slow, and hasn't been stress-tested for
+    what happens if it fails partway through a long paginated search.
+  - Every dialog goes through `showConfirmationAlert` rather than `showInputAlert`/
+    `showCustomAlert`, which crash this Discord build outright
+    (`bunny.metro.byDisplayName(FluxContainer(Alert)) is undefined`). There's no API to
+    close an alert from code, so the "searching"/"deleting" step and whatever follows it
+    can briefly stack instead of cleanly replacing each other — more likely to show up the
+    longer a search or delete run takes.
+  - Deletes are throttled on purpose (~1.5s floor between requests, backs off on 429s) so
+    it doesn't look like automated abuse to Discord's own systems. That's intentional, not
+    a bug, but it means a large purge takes a while, and long-running operations are
+    exactly where the alert-stacking issue above is most likely to bite.
+
+  Tried and working on servers with a small number of your own messages. Larger servers
+  are the least-tested path — go in expecting to hit something.
+
+</details>
+
 # Themes
 
 Paste into your client's **Themes** page (not Plugins).
