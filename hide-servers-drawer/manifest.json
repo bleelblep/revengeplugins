@@ -1,0 +1,1 @@
+{"name":"Hide Servers (Drawer Fix)","description":"Locally hide servers from your server list, without the scroll-jump bug.","authors":[{"name":"blerp","id":"0"}],"main":"index.js","vendetta":{"icon":"ic_hide_password"},"hash":"935e3878906326fbb8782886c2c1021671aa544b836fd043846a1b76d0225dcf"}

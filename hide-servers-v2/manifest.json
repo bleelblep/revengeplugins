@@ -1,1 +1,0 @@
-{"name":"Hide Servers v2","description":"Locally hide servers from your server list. Experimental: replaces the whole server bar instead of blanking rows, to avoid the v1 gap bug.","authors":[{"name":"blerp","id":"0"}],"main":"index.js","vendetta":{"icon":"ic_hide_password"},"hash":"ac1b0a238ccb758c1fbcd0cdc5ae1560b830ae69d0272993c63b474173d9e819"}
