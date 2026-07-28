@@ -1,21 +1,25 @@
 import { findByProps } from "@vendetta/metro";
 import { React, ReactNative } from "@vendetta/metro/common";
 import { UnreadDm } from "../../lib/dms";
-import { avatarFallback, barBackground, mentionBadge, unreadDot } from "../theme";
+import { BAR_WIDTH, ICON_SIZE } from "../layout";
+import { avatarFallback, barBackground, mentionBadge, selectedFill, unreadDot } from "../theme";
+import MorphIcon from "./MorphIcon";
+import Pill from "./Pill";
 
 const { Pressable, View, Image, Text } = ReactNative;
 
 const ChannelActions = findByProps("selectPrivateChannel");
 const Haptic = findByProps("triggerHapticFeedback", "HapticFeedbackTypes");
 
-const SIZE = 48;
-const MINI = 16;
+const SIZE = ICON_SIZE;
 
-// Same layout FolderRow.tsx uses for its multi-guild collage cover.
-const POS = [
-    { top: 6, left: 6 }, { top: 6, right: 6 },
-    { bottom: 6, left: 6 }, { bottom: 6, right: 6 },
-];
+// Group DMs read as two overlapping member avatars, not a sparse 2x2 grid of tiny icons in
+// the corners (which is what FolderRow's guild collage does -- borrowing that layout here
+// left a big empty gap in the middle, and looked broken outright for a 2-person group).
+// Each avatar is large enough to actually recognise, with the front one ringed in the bar's
+// own background colour to separate the two.
+const STACK = 32;
+const RING = 2;
 
 function acronym(name: string): string {
     return String(name ?? "")
@@ -25,55 +29,91 @@ function acronym(name: string): string {
         .toUpperCase();
 }
 
-function MiniAvatar({ member }: { member: { url?: string; username: string } }) {
+function MemberAvatar({ member, size, fontSize }: {
+    member: { url?: string; username: string };
+    size: number;
+    fontSize: number;
+}) {
     if (member.url) {
-        return <Image source={{ uri: member.url }} style={{ width: MINI, height: MINI, borderRadius: MINI / 2 }} />;
+        return <Image source={{ uri: member.url }} style={{ width: size, height: size, borderRadius: size / 2 }} />;
     }
     return <View style={{
-        width: MINI, height: MINI, borderRadius: MINI / 2,
+        width: size, height: size, borderRadius: size / 2,
         backgroundColor: avatarFallback(), alignItems: "center", justifyContent: "center",
     }}>
-        <Text style={{ color: "#fff", fontSize: 8, fontWeight: "600" }}>{acronym(member.username)}</Text>
+        <Text style={{ color: "#fff", fontSize, fontWeight: "600" }}>{acronym(member.username)}</Text>
     </View>;
 }
 
-/** Same shape/size as GuildRow, one per unread DM/group-DM -- see lib/dms.ts. */
-export default function UnreadDmRow({ dm }: { dm: UnreadDm }) {
+/** Two overlapping avatars: first back/top-left, second front/bottom-right with a ring. */
+function GroupAvatars({ members }: { members: { id: string; url?: string; username: string }[] }) {
+    const [back, front] = members;
+
+    return <View style={{ width: SIZE, height: SIZE }}>
+        <View style={{ position: "absolute", top: 0, left: 0 }}>
+            <MemberAvatar member={back} size={STACK} fontSize={12} />
+        </View>
+        {front
+            ? <View style={{
+                position: "absolute", bottom: 0, right: 0,
+                padding: RING, borderRadius: (STACK + RING * 2) / 2,
+                backgroundColor: barBackground(),
+            }}>
+                <MemberAvatar member={front} size={STACK} fontSize={12} />
+            </View>
+            : null}
+    </View>;
+}
+
+/**
+ * Same shape/size as GuildRow, one per unread DM/group-DM -- see lib/dms.ts. Memoised for
+ * the same reason GuildRow is: the bar re-renders on every DM store emit, and rebuilding
+ * every row's avatar each time flashes the bar.
+ */
+function UnreadDmRow({ dm, selected }: { dm: UnreadDm; selected: boolean }) {
     const navigate = React.useCallback(() => {
         Haptic?.triggerHapticFeedback?.(Haptic.HapticFeedbackTypes.SOFT);
         try { ChannelActions?.selectPrivateChannel?.(dm.channelId) } catch { /* ignore */ }
     }, [dm.channelId]);
 
     return <Pressable onPress={navigate}>
-        <View style={{ width: SIZE, height: SIZE }}>
-            {dm.avatarUrl
-                ? <Image source={{ uri: dm.avatarUrl }} style={{ width: SIZE, height: SIZE, borderRadius: SIZE / 2 }} />
-                : dm.memberAvatars?.length
-                    ? <View style={{ width: SIZE, height: SIZE, borderRadius: SIZE / 2, overflow: "hidden", backgroundColor: avatarFallback() }}>
-                        {dm.memberAvatars.map((member, i) =>
-                            <View key={member.id} style={{ position: "absolute", ...POS[i] }}>
-                                <MiniAvatar member={member} />
-                            </View>
-                        )}
-                    </View>
-                    : <View style={{
-                        width: SIZE, height: SIZE, borderRadius: SIZE / 2,
-                        backgroundColor: avatarFallback(), alignItems: "center", justifyContent: "center",
-                    }}>
-                        <Text style={{ color: "#fff", fontSize: 16, fontWeight: "600" }}>{acronym(dm.name)}</Text>
-                    </View>}
+        {/* Full bar-width row, icon centred, pill at left: 0 inside it -- see ui/layout.ts. */}
+        <View style={{ width: BAR_WIDTH, height: SIZE, alignItems: "center", justifyContent: "center" }}>
+            <Pill rowHeight={SIZE} selected={selected} />
 
-            {dm.mentionCount > 0
-                ? <View style={[st.pillOutline, { backgroundColor: barBackground() }]}>
-                    <View style={[st.pill, { backgroundColor: mentionBadge() }]}>
-                        <Text style={st.pillText}>{dm.mentionCount > 99 ? "99+" : String(dm.mentionCount)}</Text>
+            <View style={{ width: SIZE, height: SIZE }}>
+                {/* Circle by default, animating to a rounded square when selected. Only the
+                    initials fallback needs the colour cross-fade; the other two fill the
+                    frame with imagery, so a backdrop behind them would never be visible. */}
+                {dm.avatarUrl
+                    ? <MorphIcon size={SIZE} selected={selected}>
+                        <Image source={{ uri: dm.avatarUrl }} style={{ width: SIZE, height: SIZE }} />
+                    </MorphIcon>
+                    : dm.memberAvatars?.length
+                        ? <MorphIcon size={SIZE} selected={selected}>
+                            <GroupAvatars members={dm.memberAvatars.slice(0, 2)} />
+                        </MorphIcon>
+                        : <MorphIcon
+                            size={SIZE}
+                            selected={selected}
+                            background={avatarFallback()}
+                            selectedBackground={selectedFill()}
+                        >
+                            <Text style={{ color: "#fff", fontSize: 16, fontWeight: "600" }}>{acronym(dm.name)}</Text>
+                        </MorphIcon>}
+
+                {dm.mentionCount > 0
+                    ? <View style={[st.pillOutline, { backgroundColor: barBackground() }]}>
+                        <View style={[st.pill, { backgroundColor: mentionBadge() }]}>
+                            <Text style={st.pillText}>{dm.mentionCount > 99 ? "99+" : String(dm.mentionCount)}</Text>
+                        </View>
                     </View>
-                </View>
-                : dm.hasUnread
-                    ? <View style={[st.dotOutline, { backgroundColor: barBackground() }]}>
-                        <View style={[st.dot, { backgroundColor: unreadDot() }]} />
-                    </View>
-                    : null}
+                    : dm.hasUnread
+                        ? <View style={[st.dotOutline, { backgroundColor: barBackground() }]}>
+                            <View style={[st.dot, { backgroundColor: unreadDot() }]} />
+                        </View>
+                        : null}
+            </View>
         </View>
     </Pressable>;
 }
@@ -96,3 +136,5 @@ const st = {
     },
     dot: { width: 10, height: 10, borderRadius: 5 },
 };
+
+export default React.memo(UnreadDmRow);

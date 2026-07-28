@@ -84,12 +84,14 @@ export default function FolderRow({ node }: { node: any }) {
         // Discord groups an expanded folder's rows inside a rounded, tinted backdrop rather
         // than leaving them floating loose in the list -- without it an open folder is
         // visually indistinguishable from a run of ungrouped servers.
+        // No horizontal padding: child GuildRows are a full bar-width each (so their
+        // left-edge pill can sit inside their own bounds -- see ui/layout.ts), and padding
+        // here would push them wider than the bar.
         return <View style={{
             alignItems: "center",
             backgroundColor: `${tint}33`,
             borderRadius: 20,
             paddingVertical: 10,
-            paddingHorizontal: 8,
         }}>
             <Pressable onPress={toggle} onLongPress={openMenu} delayLongPress={450} style={{ marginBottom: children.length ? 10 : 0 }}>
                 <View style={{

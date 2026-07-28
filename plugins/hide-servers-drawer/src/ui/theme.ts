@@ -57,6 +57,16 @@ export const folderTint = (color?: number | null) => {
     return `#${(color >>> 0).toString(16).padStart(6, "0").slice(-6)}`;
 };
 
+// Stock's selected-icon fill (confirmed from screenshots: the Home button morphs from a
+// circle with a neutral background to a rounded square filled with the theme's brand/accent
+// color when selected). Reusing BACKGROUND_BRAND rather than a hardcoded hex is what makes
+// this track the user's actual installed theme instead of always rendering Discord's default
+// blurple.
+export const selectedFill = () => token("BACKGROUND_BRAND", "#5865f2");
+
+// (The circle <-> rounded-square radius now lives in ui/components/MorphIcon.tsx, which
+// animates between the two rather than switching instantly.)
+
 // Only used by ContextMenu.tsx, the fallback path for when the native action sheet (see
 // lib/guildMenu.ts) isn't available -- kept theme-aware for the same reason as everything
 // else here, but expect it to be reached rarely.
@@ -66,4 +76,7 @@ export const textMuted = () => token("TEXT_MUTED", "#949ba4");
 export const textNormal = () => token("TEXT_DEFAULT", "#dbdee1");
 export const dangerText = () => token("STATUS_DANGER", "#f23f42");
 export const pressedOverlay = () => token("TABLEROW_BACKGROUND_PRESSED", "#35373c");
-export const avatarFallback = () => token("BACKGROUND_ACCENT", "#4e5058");
+// MOBILE_GUILDBAR_ICON_BACKGROUND_DEFAULT was confirmed to exist (round 12) but never
+// actually used anywhere -- it's the specific token for exactly this context (a guild-bar
+// icon's own background), more accurate than the generic BACKGROUND_ACCENT this used before.
+export const avatarFallback = () => token("MOBILE_GUILDBAR_ICON_BACKGROUND_DEFAULT", token("BACKGROUND_ACCENT", "#4e5058"));

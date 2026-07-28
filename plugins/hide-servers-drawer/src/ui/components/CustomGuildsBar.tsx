@@ -2,6 +2,7 @@ import { findByProps, findByStoreName } from "@vendetta/metro";
 import { React, ReactNative } from "@vendetta/metro/common";
 import { subscribeDmChanges, unreadDmChannels } from "../../lib/dms";
 import { store as sortedGuildStore } from "../../patches/sortedGuilds";
+import { BAR_WIDTH } from "../layout";
 import { barBackground, separator } from "../theme";
 import DmIcon from "./DmIcon";
 import FolderRow from "./FolderRow";
@@ -17,7 +18,7 @@ const Routes = findByProps("ME");
 const ME = Routes?.ME ?? "/channels/@me";
 const SafeArea = findByProps("useSafeAreaInsets");
 
-const BAR_WIDTH = 72;
+// Re-exported from ui/layout so the rows and the bar can't drift out of sync.
 // Discord's own bottom tab bar ("You"/home/etc) is a separate fixed-height UI element, not
 // part of the safe-area inset -- the inset only covers the gesture-nav pill below it. This bar
 // renders as an overlay on top of that whole screen, so without reserving space for both, the
@@ -45,11 +46,36 @@ function useBottomSafeInset(): number {
     return 0;
 }
 
+function useSelectedChannelId(): string | null {
+    const [id, setId] = React.useState<string | null>(() => {
+        try { return SelectedChannelStore?.getChannelId?.() ?? null } catch { return null }
+    });
+
+    React.useEffect(() => {
+        if (!SelectedChannelStore?.addChangeListener) return;
+        const onChange = () => {
+            try { setId(SelectedChannelStore.getChannelId?.() ?? null) } catch { /* ignore */ }
+        };
+        SelectedChannelStore.addChangeListener(onChange);
+        return () => SelectedChannelStore.removeChangeListener?.(onChange);
+    }, []);
+
+    return id;
+}
+
+/**
+ * Open the DM list, the way stock's Home button does.
+ *
+ * The previous version called getLastSelectedChannelId() with no argument -- that returns the
+ * *currently* selected channel, which is a guild channel whenever you're sitting in a server,
+ * and handing a guild channel to selectPrivateChannel() dumped you on an unrelated screen.
+ * Passing null instead clears the private-channel selection, which is what lands on the DM
+ * list rather than any one conversation.
+ */
 function openDms() {
     Haptic?.triggerHapticFeedback?.(Haptic.HapticFeedbackTypes.SOFT);
     try {
-        const lastChannelId = SelectedChannelStore?.getLastSelectedChannelId?.();
-        ChannelActions?.selectPrivateChannel?.(lastChannelId);
+        ChannelActions?.selectPrivateChannel?.(null);
     } catch { /* ignore */ }
 }
 
@@ -75,6 +101,7 @@ export default function CustomGuildsBar() {
     React.useEffect(() => subscribeDmChanges(bumpDms), []);
 
     const selectedId = useSelectedGuildId();
+    const selectedChannelId = useSelectedChannelId();
     const inDms = selectedId == null || selectedId === ME;
     const bottomPadding = TAB_BAR_HEIGHT + useBottomSafeInset();
 
@@ -86,14 +113,22 @@ export default function CustomGuildsBar() {
     return <View style={{ width: BAR_WIDTH, backgroundColor: barBackground(), paddingTop: topInset() }}>
         <DmIcon selected={inDms} onPress={openDms} />
 
+        {/* Rows are each a full BAR_WIDTH with their icon centred, so nothing needs to paint
+            outside its own bounds and no overflow handling is required here. */}
         <ScrollView contentContainerStyle={{ alignItems: "center", paddingBottom: bottomPadding }} showsVerticalScrollIndicator={false}>
-            {unread.map(dm => <View key={dm.channelId} style={{ marginBottom: 10 }}><UnreadDmRow dm={dm} /></View>)}
+            {unread.map(dm =>
+                <View key={dm.channelId} style={{ marginBottom: 10 }}>
+                    <UnreadDmRow dm={dm} selected={dm.channelId === selectedChannelId} />
+                </View>
+            )}
 
             <View style={{ height: 2, width: 32, marginBottom: 10, backgroundColor: separator(), borderRadius: 1 }} />
 
-            {children.map((node: any) => {
+            {children.map((node: any, index: number) => {
                 if (!node) return null;
-                const key = node.id ?? Math.random();
+                // Never Math.random() here -- a fresh key each render makes React tear the
+                // row down and rebuild it (reloading its image) on every re-render.
+                const key = node.id ?? `node-${index}`;
                 return <View key={key} style={{ marginBottom: 10 }}>
                     {node.type === "folder"
                         ? <FolderRow node={node} />
