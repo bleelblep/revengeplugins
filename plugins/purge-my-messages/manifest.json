@@ -1,0 +1,14 @@
+{
+    "name": "Purge My Messages",
+    "description": "Bulk delete your own messages from a server, with a typed confirmation before anything runs.",
+    "authors": [
+        {
+            "name": "bleelblep",
+            "id": "0"
+        }
+    ],
+    "main": "src/index.ts",
+    "vendetta": {
+        "icon": "ic_message_delete"
+    }
+}
