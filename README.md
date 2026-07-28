@@ -70,59 +70,53 @@ Originally by [Fiery](https://github.com/fierdetta/custom-timestamps).
 
 </details>
 
-## Hide Servers
-Locally hide servers from your server list. Settings mirror the server bar — same order, your
-folders, real server icons — with a switch per server.
+## Hide Servers (Drawer Fix)
+Locally hide servers — or entire folders — from your server list, without the scroll-jump
+bug earlier versions had. Settings mirror the server bar — same order, your folders, real
+server icons — with a switch per server and per folder.
 
-Rewritten from scratch; the original by [nexpid](https://github.com/nexpid) is no longer
-available in source form.
+Supersedes the earlier Hide Servers / Hide Servers v2 plugins below (their source stays in
+this repo's history; the install URLs are gone).
 
-> https://bleelblep.github.io/revengeplugins/hide-servers/
+> https://bleelblep.github.io/revengeplugins/hide-servers-drawer/
 
 <details>
-  <summary>Known issue</summary>
+  <summary>How it actually fixes the scroll-jump bug</summary>
 
-  A hidden server leaves an **empty space** in the bar, and tapping a server can **jump the
-  bar's scroll position**. Reloading Discord clears it until the next change; there is a
-  Reload button in the plugin's settings.
+  Both earlier attempts patched individual `GuildsBarGuild` rows to render nothing. That
+  hides the icon, but the row's slot stays in `FastList`'s virtualized geometry — the bar
+  keeps a phantom gap, and tapping a server can jump the scroll position. There's no prop or
+  override that removes an item from that geometry short of it never being in the array
+  `FastList` sees in the first place.
 
-  The cause: nothing that feeds the bar can be intercepted on this build.
+  So this patches the bar itself, not its rows: while anything is hidden, `GuildsBar` is
+  swapped for a plain, non-virtualized render built from `SortedGuildStore.getGuildsTree()`
+  (already filtered). A hidden guild is simply absent from that array — nothing reserves a
+  slot for it, so there's no gap and no jump. When nothing is hidden, the real `GuildsBar`
+  renders untouched.
 
-  - `GuildsBar` takes a single `enableHome` prop and builds its rows internally from hooks.
-  - Its helpers (`getGuildBarNeighbors`, `getGuildsBarGuildAccessibilityActions`) are local to
-    that bundle module, not exported.
-  - `SortedGuildStore` is not the bar's source — filtering it verifiably works (88 → 87 ids,
-    `root.children` 55 → 54) yet the bar is unchanged, even across a reload.
-  - Overriding FastList's `itemSize` to collapse the row had no effect either.
-
-  So the only available lever is `GuildsBarGuild` itself, and a row component can only render
-  nothing — its slot stays in FastList's geometry. Hiding works; the gap is cosmetic.
+  Trade-off: while the custom bar is active, native drag-to-reorder isn't available. Turn off
+  "Hide servers in the bar" (or unhide everything) to get it back.
 
 </details>
 
-## Hide Servers v2 (experimental)
-Same idea as Hide Servers, different technique: instead of patching individual
-`GuildsBarGuild` rows, this swaps `GuildsBar`'s own module export and filters the element
-tree it returns before it reaches FastList — aiming to avoid the gap/scroll-jump above by
-never handing FastList the hidden guilds in the first place, rather than nulling their slot
-after the fact.
-
-> https://bleelblep.github.io/revengeplugins/hide-servers-v2/
-
 <details>
-  <summary>How it differs from v1, and its risk</summary>
+  <summary>Credit: kmmiio99o/vd-plugins (ServerDrawer)</summary>
 
-  Inspired by how [ServerDrawer](https://github.com/kmmiio99o/vd-plugins/blob/main/plugins/ServerDrawer/src/patches/hideGuildsBar.tsx)
-  resolves and replaces `GuildsBar` wholesale (for a different purpose — it hides the bar
-  entirely in favour of a drawer). Here the original `GuildsBar` function is still called, so
-  its hooks and behaviour are untouched; only its returned element tree is walked afterward,
-  and array-valued props with list-shaped keys (`data`, `items`, `children`, `ids`, `guilds`,
-  `nodes`) are filtered for hidden guild ids.
+  The core insight above — and the fix for it — came from studying
+  [ServerDrawer](https://github.com/kmmiio99o/vd-plugins/tree/main/plugins/ServerDrawer),
+  which sidesteps `GuildsBar`'s `FastList` entirely for a different purpose (a drawer instead
+  of the sidebar). A few pieces are carried over directly:
 
-  **Not yet verified against a live client.** The prop-name guesses may not match anything
-  `GuildsBar` actually returns, in which case this silently no-ops and the bar renders
-  untouched — same degrade-safe behaviour as any resolve failure elsewhere in this repo. If
-  it doesn't visually hide anything, fall back to the original Hide Servers plugin above.
+  - `patches/createElementIntercept.ts` is a close port of ServerDrawer's file of the same
+    name (global `React.createElement` interception as a fallback for cached component
+    references) and is licensed **GPL-3.0** here as a result — the one GPL file in this
+    otherwise CC0-1.0 repo. Full details, license text, and attribution:
+    [`plugins/hide-servers-drawer/NOTICE.md`](./plugins/hide-servers-drawer/NOTICE.md).
+  - The "replace the whole bar instead of patching rows" strategy, and locating
+    `getGuildsBarGuildMenuItems` / `showSimpleActionSheet` for a real (not reimplemented)
+    long-press menu, are independent implementations after the same approach — no code
+    copied, credited as a courtesy.
 
 </details>
 
@@ -130,16 +124,22 @@ after the fact.
   <summary>Notes for anyone extending this</summary>
 
   - `GuildsBar` and `GuildsBarGuild` resolve **only** via `findByTypeNameAll`. `findByName` and
-    `findByDisplayName` both return nothing. `FastList` is the opposite — `findByName(_, false)`
-    finds it, `findByTypeNameAll` returns none.
+    `findByDisplayName` both return nothing.
   - Suppress a render with `instead`, not `after`: an `after` callback returning `null` is read
     as "no change" and the original element renders anyway.
   - Store values are **class instances**. Never object-spread them — that drops the prototype
     and its methods, which crashed `getGuildBarNeighbors` with "undefined is not a function".
-  - `Object.keys` on these stores returns only Flux internals; real methods come through a
-    proxy. Absence from an enumeration proves nothing — test by direct access.
   - The build transpiles `const` in `for...of` to `var`, so closures created in a loop share
     the final iteration's bindings. Install patches from a standalone function.
+  - Discord's semantic color tokens were fully renamed at some point (`BACKGROUND_TERTIARY` →
+    `BACKGROUND_BASE_LOWEST`, `TEXT_NORMAL` → `TEXT_DEFAULT`, etc). Background/surface/text
+    tokens resolve through `@vendetta/ui`'s `semanticColors` + a `resolveSemanticColor(theme,
+    descriptor)` call (needed for custom JSON themes to apply), not the flat `colors` map —
+    see `plugins/hide-servers-drawer/src/ui/theme.ts`.
+  - `GuildActions.move`/`moveById` exist (found via `findByProps("toggleGuildFolderExpand")`)
+    but this build's Hermes bytecode strips parameter names, so their call signature is
+    unverified — drag-to-reorder was deliberately left out rather than guess against a live
+    guild list.
 
 </details>
 
