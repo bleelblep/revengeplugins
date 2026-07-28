@@ -73,7 +73,10 @@ Originally by [Fiery](https://github.com/fierdetta/custom-timestamps).
 ## Hide Servers (Drawer Fix)
 Locally hide servers — or entire folders — from your server list, without the scroll-jump
 bug earlier versions had. Settings mirror the server bar — same order, your folders, real
-server icons — with a switch per server and per folder.
+server icons — with a switch per server and per folder. The custom bar also matches stock
+for DMs: the Home button shows your most recent conversation's real avatar, and every
+unread DM/group-DM gets its own row (with unread badge) between the Home button and the
+server list, same as stock.
 
 Supersedes the earlier Hide Servers / Hide Servers v2 plugins below (their source stays in
 this repo's history; the install URLs are gone).
@@ -140,6 +143,11 @@ this repo's history; the install URLs are gone).
     but this build's Hermes bytecode strips parameter names, so their call signature is
     unverified — drag-to-reorder was deliberately left out rather than guess against a live
     guild list.
+  - DMs: `ChannelStore.getSortedPrivateChannels()` returns DM/group-DM channels
+    most-recent-first (same ordering stock's Home button reflects), and `ReadStateStore`
+    (not the guild-specific `GuildReadStateStore`) covers unread state for private channels
+    with the same `hasUnread`/`getMentionCount` shape. Both confirmed live rather than
+    assumed from the guild-side equivalents.
 
 </details>
 
