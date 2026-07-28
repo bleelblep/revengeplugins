@@ -1,19 +1,20 @@
 import { findByProps, findByStoreName } from "@vendetta/metro";
 import { React, ReactNative } from "@vendetta/metro/common";
-import { getAssetIDByName } from "@vendetta/ui/assets";
+import { subscribeDmChanges, unreadDmChannels } from "../../lib/dms";
 import { store as sortedGuildStore } from "../../patches/sortedGuilds";
-import { barBackground, iconActive, iconInactive, selectedPill, separator } from "../theme";
+import { barBackground, separator } from "../theme";
+import DmIcon from "./DmIcon";
 import FolderRow from "./FolderRow";
 import GuildRow, { useSelectedGuildId } from "./GuildRow";
+import UnreadDmRow from "./UnreadDmRow";
 
-const { ScrollView, View, Pressable, Image, StatusBar, Platform } = ReactNative;
+const { ScrollView, View, StatusBar, Platform } = ReactNative;
 
 const ChannelActions = findByProps("selectPrivateChannel");
 const SelectedChannelStore = findByStoreName("SelectedChannelStore");
 const Haptic = findByProps("triggerHapticFeedback", "HapticFeedbackTypes");
 const Routes = findByProps("ME");
 const ME = Routes?.ME ?? "/channels/@me";
-const ChatIcon = getAssetIDByName("ChatIcon") ?? getAssetIDByName("ic_message");
 const SafeArea = findByProps("useSafeAreaInsets");
 
 const BAR_WIDTH = 72;
@@ -70,6 +71,9 @@ export default function CustomGuildsBar() {
         return () => store.removeChangeListener?.(onChange);
     }, []);
 
+    const [, bumpDms] = React.useReducer((n: number) => n + 1, 0);
+    React.useEffect(() => subscribeDmChanges(bumpDms), []);
+
     const selectedId = useSelectedGuildId();
     const inDms = selectedId == null || selectedId === ME;
     const bottomPadding = TAB_BAR_HEIGHT + useBottomSafeInset();
@@ -77,17 +81,16 @@ export default function CustomGuildsBar() {
     let children: any[] = [];
     try { children = sortedGuildStore()?.getGuildsTree?.()?.root?.children ?? [] } catch { /* ignore */ }
 
-    return <View style={{ width: BAR_WIDTH, backgroundColor: barBackground(), paddingTop: topInset() }}>
-        <Pressable onPress={openDms} style={{ height: 48, alignItems: "center", justifyContent: "center" }}>
-            {inDms
-                ? <View style={{ position: "absolute", left: 0, top: 14, width: 4, height: 20, borderRadius: 2, backgroundColor: selectedPill() }} />
-                : null}
-            <Image source={ChatIcon} style={{ width: 28, height: 28, tintColor: inDms ? iconActive() : iconInactive() }} />
-        </Pressable>
+    const unread = unreadDmChannels();
 
-        <View style={{ height: 2, marginHorizontal: 16, marginVertical: 8, backgroundColor: separator(), borderRadius: 1 }} />
+    return <View style={{ width: BAR_WIDTH, backgroundColor: barBackground(), paddingTop: topInset() }}>
+        <DmIcon selected={inDms} onPress={openDms} />
 
         <ScrollView contentContainerStyle={{ alignItems: "center", paddingBottom: bottomPadding }} showsVerticalScrollIndicator={false}>
+            {unread.map(dm => <View key={dm.channelId} style={{ marginBottom: 10 }}><UnreadDmRow dm={dm} /></View>)}
+
+            <View style={{ height: 2, width: 32, marginBottom: 10, backgroundColor: separator(), borderRadius: 1 }} />
+
             {children.map((node: any) => {
                 if (!node) return null;
                 const key = node.id ?? Math.random();

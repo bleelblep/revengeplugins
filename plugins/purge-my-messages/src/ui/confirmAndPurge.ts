@@ -1,11 +1,10 @@
 import { React } from "@vendetta/metro/common";
-import { showConfirmationAlert, showCustomAlert } from "@vendetta/ui/alerts";
+import { showConfirmationAlert } from "@vendetta/ui/alerts";
 import { showToast } from "@vendetta/ui/toasts";
 import { FoundMessage, currentUserId, describeError } from "../lib/api";
 import { CancelToken, DeleteState, searchAllMyMessages, startDelete } from "../lib/purge";
 import ProgressContent from "./ProgressContent";
 import { setProgress } from "./progressStore";
-import TestCustomAlertContent from "./TestCustomAlertContent";
 
 /** Cancel callback for whatever phase (search or delete) is currently running per guild. */
 const active = new Map<string, () => void>();
@@ -48,11 +47,6 @@ export function confirmAndPurge(guildId: string, guildName: string) {
         content: "This only searches for now -- nothing is deleted yet. You'll see a preview and a separate confirmation before anything is removed.",
         confirmText: "Search",
         cancelText: "Cancel",
-        // Temporary: safe place to find out whether showCustomAlert renders at all on this
-        // build before trusting it anywhere real. Nothing is in progress yet, so a crash
-        // here can't corrupt any in-flight search/delete state. Remove once answered.
-        secondaryConfirmText: "Test alert style (safe)",
-        onConfirmSecondary: () => showCustomAlert(TestCustomAlertContent, {}),
         onConfirm: () => runSearch(guildId, guildName, authorId),
     });
 }
