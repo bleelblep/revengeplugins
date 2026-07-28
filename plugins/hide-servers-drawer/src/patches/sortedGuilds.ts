@@ -1,6 +1,6 @@
 import { findByStoreName } from "@vendetta/metro";
 import { after } from "@vendetta/patcher";
-import { isEmpty, isHidden } from "../lib/hidden";
+import { isEmpty, isFolderHidden, isHidden } from "../lib/hidden";
 
 const SortedGuildStore = findByStoreName("SortedGuildStore");
 
@@ -22,16 +22,46 @@ function clone<T extends object>(value: T): T {
     return out;
 }
 
+/**
+ * Guild ids sitting inside a hidden folder. getFlattenedGuildIds/getFlattenedGuilds/
+ * getGuildIds have no folder context of their own -- they're just id arrays -- so hiding a
+ * folder has to be cross-referenced against the tree to know which flattened ids it covers.
+ * Built fresh per filter call (folder membership changes rarely, but the hidden set can
+ * change every render) from the *unfiltered* tree so a folder that's itself hidden doesn't
+ * disappear from this lookup before it's been consulted.
+ */
+function hiddenFolderGuildIds(): Set<string> {
+    const out = new Set<string>();
+
+    try {
+        const tree = unfiltered(() => SortedGuildStore?.getGuildsTree?.());
+        const children = tree?.root?.children;
+        if (!Array.isArray(children)) return out;
+
+        for (const node of children) {
+            if (node?.type !== "folder" || node.id == null || !isFolderHidden(node.id)) continue;
+            for (const child of node.children ?? []) {
+                if (child?.id != null) out.add(String(child.id));
+            }
+        }
+    } catch { /* best effort -- getFlattenedGuildIds/getGuildFolders just won't reflect it */ }
+
+    return out;
+}
+
 /** Never mutate what the store returns -- other consumers share these objects. */
 function filterIds(ids: unknown): unknown {
     if (!Array.isArray(ids)) return ids;
-    return ids.filter(id => typeof id !== "string" || !isHidden(id));
+    const hiddenInFolders = hiddenFolderGuildIds();
+    return ids.filter(id => typeof id !== "string" || (!isHidden(id) && !hiddenInFolders.has(id)));
 }
 
 function filterFolders(folders: unknown): unknown {
     if (!Array.isArray(folders)) return folders;
 
     return folders
+        // Whole folder hidden: drop it outright, guildIds included.
+        .filter(folder => !(folder?.folderId != null && isFolderHidden(folder.folderId)))
         .map(folder => {
             if (!folder || !Array.isArray(folder.guildIds)) return folder;
 
@@ -55,7 +85,8 @@ function filterFolders(folders: unknown): unknown {
 // Note `nodes` is an object map keyed by id, not an array, and folder ids are numbers
 // while guild ids are strings.
 const isHiddenNode = (node: any) =>
-    node?.type === "guild" && node.id != null && isHidden(String(node.id));
+    (node?.type === "guild" && node.id != null && isHidden(String(node.id))) ||
+    (node?.type === "folder" && node.id != null && isFolderHidden(node.id));
 
 function filterChildren(children: any[]): any[] {
     const out: any[] = [];

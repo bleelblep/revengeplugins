@@ -1,6 +1,6 @@
 {
-    "name": "Hide Servers",
-    "description": "Locally hide servers from your server list.",
+    "name": "Hide Servers (Drawer Fix)",
+    "description": "Locally hide servers from your server list, without the scroll-jump bug.",
     "authors": [
         {
             "name": "blerp",

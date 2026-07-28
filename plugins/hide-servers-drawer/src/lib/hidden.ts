@@ -34,6 +34,31 @@ export function isHidden(guildId: string): boolean {
     return ids.has(guildId);
 }
 
+// Folder ids are numbers where guild ids are strings (see patches/sortedGuilds.ts), and share
+// the same storage blob as a "folder:<id>" key rather than a second Set -- one persisted
+// object, one load()/persist() pair, same as before.
+function folderKey(folderId: string | number): string {
+    return `folder:${folderId}`;
+}
+
+export function isFolderHidden(folderId: string | number): boolean {
+    load();
+    return ids.has(folderKey(folderId));
+}
+
+export function setFolderHidden(folderId: string | number, hidden: boolean) {
+    load();
+    const key = folderKey(folderId);
+    if (hidden) ids.add(key);
+    else ids.delete(key);
+    persist();
+}
+
+export function hiddenFolderIds(): string[] {
+    load();
+    return [...ids].filter(id => id.startsWith("folder:")).map(id => id.slice("folder:".length));
+}
+
 /**
  * Suppress hidden servers in the bar by blanking the row component.
  *
@@ -57,7 +82,7 @@ export function setInstant(value: boolean) {
 
 export function hiddenIds(): string[] {
     load();
-    return [...ids];
+    return [...ids].filter(id => !id.startsWith("folder:"));
 }
 
 export function setHidden(guildId: string, hidden: boolean) {

@@ -1,10 +1,12 @@
 import { findByProps, findByStoreName } from "@vendetta/metro";
 import { React, ReactNative } from "@vendetta/metro/common";
 import { showConfirmationAlert } from "@vendetta/ui/alerts";
-import { clearHidden, hiddenIds, instant, isHidden, setHidden, setInstant } from "../../lib/hidden";
+import { clearHidden, hiddenFolderIds, hiddenIds, instant, isFolderHidden, isHidden, setFolderHidden, setHidden, setInstant } from "../../lib/hidden";
+import { setStaticIcons, staticIcons } from "../../lib/prefs";
 import { canReload, reloadDiscord } from "../../lib/reload";
 import { refresh, store, unfiltered } from "../../patches/sortedGuilds";
 import GuildIcon from "../components/GuildIcon";
+import { textMuted, textNormal } from "../theme";
 
 // Resolve UI pieces without destructuring -- an undefined module here throws at import
 // time, before onLoad exists, which the client reports as a plugin that won't enable.
@@ -20,7 +22,7 @@ const GuildStore = findByStoreName("GuildStore");
 const { ScrollView, Text, View } = ReactNative;
 
 type Guild = { id: string; name: string; icon?: string };
-type Group = { title: string; guilds: Guild[] };
+type Group = { title: string; guilds: Guild[]; folderId?: string | number };
 
 function guildById(id: string): Guild | undefined {
     try {
@@ -59,7 +61,7 @@ function groups(): Group[] {
                 if (!guilds.length) continue;
 
                 flush();
-                out.push({ title: node.name || "Folder", guilds });
+                out.push({ title: node.name || "Folder", guilds, folderId: node.id });
             } else if (node?.id != null) {
                 const guild = guildById(String(node.id));
                 if (guild) loose.push(guild);
@@ -89,11 +91,13 @@ export default function Settings() {
 
     const list = groups();
     const hidden = hiddenIds();
+    const hiddenFolders = hiddenFolderIds();
+    const hiddenCount = hidden.length + hiddenFolders.length;
 
     if (!Section || !SwitchRow) {
         return <ScrollView style={{ flex: 1, padding: 16 }}>
-            <Text style={{ color: "#f5f5f5" }}>
-                Settings are unavailable on this Discord build. {hidden.length} server(s) hidden.
+            <Text style={{ color: textNormal() }}>
+                Settings are unavailable on this Discord build. {hidden.length} server(s) and {hiddenFolders.length} folder(s) hidden.
             </Text>
         </ScrollView>;
     }
@@ -108,19 +112,29 @@ export default function Settings() {
 
     return <ScrollView style={{ flex: 1 }}>
         <View style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 4 }}>
-            <Text style={{ color: "#B5BAC1", fontSize: 12, lineHeight: 16 }}>
-                Hiding is local to this device and never leaves Discord. Known issue on this
-                Discord version: a hidden server leaves an empty space in the bar, and tapping
-                a server can jump the bar's scroll position. Reloading Discord clears it up
-                until the next change.
+            <Text style={{ color: textMuted(), fontSize: 12, lineHeight: 16 }}>
+                Hiding is local to this device and never leaves Discord. While anything is
+                hidden, the server bar is replaced with a plain rebuilt version so there's no
+                empty gap and no scroll jump -- the trade-off is that drag-to-reorder isn't
+                available in that state. Turn off "Hide servers in the bar" (or unhide
+                everything) to get the untouched native bar back, reorder included.
             </Text>
         </View>
 
-        {(hidden.length > 0 || canReload()) && Row
+        <Section title="Display">
+            <SwitchRow
+                label="Disable animated server icons"
+                subLabel="Show the still frame of animated (GIF) server icons instead."
+                value={staticIcons()}
+                onValueChange={(v: boolean) => { setStaticIcons(v); refresh(); bump() }}
+            />
+        </Section>
+
+        {(hiddenCount > 0 || canReload()) && Row
             ? <Section title="Hidden">
-                {hidden.length > 0
+                {hiddenCount > 0
                     ? <Row
-                        label={`${hidden.length} server${hidden.length === 1 ? "" : "s"} hidden`}
+                        label={`${hidden.length} server${hidden.length === 1 ? "" : "s"}, ${hiddenFolders.length} folder${hiddenFolders.length === 1 ? "" : "s"} hidden`}
                         subLabel="Tap to show all again"
                         onPress={() => { clearHidden(); refresh(); bump() }}
                     />
@@ -143,10 +157,22 @@ export default function Settings() {
 
         {list.length === 0
             ? <View style={{ padding: 16 }}>
-                <Text style={{ color: "#f5f5f5" }}>No servers found.</Text>
+                <Text style={{ color: textNormal() }}>No servers found.</Text>
             </View>
             : list.map((group, index) =>
                 <Section key={`${group.title}-${index}`} title={group.title}>
+                    {group.folderId != null
+                        ? <SwitchRow
+                            label={`Hide entire "${group.title}" folder`}
+                            subLabel="Overrides the per-server switches below while it's hidden."
+                            value={isFolderHidden(group.folderId)}
+                            onValueChange={(v: boolean) => {
+                                setFolderHidden(group.folderId!, v);
+                                refresh();
+                                bump();
+                            }}
+                        />
+                        : null}
                     {group.guilds.map(guild =>
                         <SwitchRow
                             key={guild.id}
