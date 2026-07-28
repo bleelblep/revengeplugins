@@ -22,8 +22,12 @@ export default function patchGuildMenu(): () => void {
 
         const id = String(guildId);
         const item = isPurging(id)
-            ? { label: "Cancel message purge", action: () => cancelPurge(id) }
-            : { label: "Delete my messages here", action: () => confirmAndPurge(id, guildName) };
+            ? { label: "Cancel purge", action: () => cancelPurge(id) }
+            // "destructive" matches the field name ServerDrawer's own menu-item handling
+            // reads for red text (item.variant === "destructive"); this build's native
+            // renderer wasn't independently confirmed to honor it, so if it doesn't show
+            // red, that's the thing to re-probe.
+            : { label: "Delete my messages", variant: "destructive", action: () => confirmAndPurge(id, guildName) };
 
         return [...ret, item];
     });

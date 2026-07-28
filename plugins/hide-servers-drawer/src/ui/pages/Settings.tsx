@@ -1,6 +1,5 @@
 import { findByProps, findByStoreName } from "@vendetta/metro";
 import { React, ReactNative } from "@vendetta/metro/common";
-import { showConfirmationAlert } from "@vendetta/ui/alerts";
 import { clearHidden, hiddenFolderIds, hiddenIds, instant, isFolderHidden, isHidden, setFolderHidden, setHidden, setInstant } from "../../lib/hidden";
 import { setStaticIcons, staticIcons } from "../../lib/prefs";
 import { canReload, reloadDiscord } from "../../lib/reload";
@@ -19,7 +18,7 @@ const Row = Table?.TableRow ?? Forms?.FormRow;
 
 const GuildStore = findByStoreName("GuildStore");
 
-const { ScrollView, Text, View } = ReactNative;
+const { Alert, ScrollView, Text, View } = ReactNative;
 
 type Guild = { id: string; name: string; icon?: string };
 type Group = { title: string; guilds: Guild[]; folderId?: string | number };
@@ -102,13 +101,17 @@ export default function Settings() {
         </ScrollView>;
     }
 
-    const confirmReload = () => showConfirmationAlert({
-        title: "Reload Discord?",
-        content: "Discord will close and reopen. Anything unsent will be lost.",
-        confirmText: "Reload",
-        cancelText: "Cancel",
-        onConfirm: () => reloadDiscord(),
-    });
+    // Native Alert.alert, not @vendetta/ui/alerts's showConfirmationAlert -- the latter
+    // crashes on this Discord build (Revenge's own Alert wrapper fails to resolve). Native
+    // Alert.alert is a real OS dialog and never touches Discord's React tree.
+    const confirmReload = () => Alert.alert(
+        "Reload Discord?",
+        "Discord will close and reopen. Anything unsent will be lost.",
+        [
+            { text: "Cancel", style: "cancel" },
+            { text: "Reload", style: "destructive", onPress: () => reloadDiscord() },
+        ],
+    );
 
     return <ScrollView style={{ flex: 1 }}>
         <View style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 4 }}>

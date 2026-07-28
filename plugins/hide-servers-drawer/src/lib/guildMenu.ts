@@ -40,7 +40,15 @@ export function stockMenuItems(guildId: string): MenuItem[] {
 
         return raw
             .filter((item: any) => item && typeof item.action === "function" && item.label)
-            .map((item: any) => ({ label: String(item.label), action: () => item.action() }));
+            .map((item: any) => ({
+                label: String(item.label),
+                // Real stock items never carry this, but third-party plugins that also
+                // append to this same shared array (e.g. purge-my-messages) might mark
+                // their own item destructive -- preserve it instead of silently dropping
+                // it, or their "danger" styling never survives the trip through here.
+                danger: !!(item.danger || item.variant === "destructive" || item.isDestructive),
+                action: () => item.action(),
+            }));
     } catch {
         return [];
     }
