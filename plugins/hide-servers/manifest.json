@@ -1,0 +1,14 @@
+{
+    "name": "Hide Servers",
+    "description": "Locally hide servers from your server list.",
+    "authors": [
+        {
+            "name": "blerp",
+            "id": "0"
+        }
+    ],
+    "main": "src/index.ts",
+    "vendetta": {
+        "icon": "ic_hide_password"
+    }
+}
